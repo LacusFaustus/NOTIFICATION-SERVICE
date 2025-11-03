@@ -1,0 +1,112 @@
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: false
+        use_sql_comments: false
+    defer-datasource-initialization: false
+
+  h2:
+    console:
+      enabled: false
+
+  flyway:
+    enabled: false
+
+  sql:
+    init:
+      mode: never
+      data-locations: ""
+
+  # Отключаем внешние зависимости для тестов
+  data:
+    redis:
+      enabled: false
+  rabbitmq:
+    enabled: false
+    listener:
+      type: simple
+      simple:
+        auto-startup: false
+  mail:
+    host: localhost
+    port: 1025
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
+      - org.springframework.boot.actuate.autoconfigure.metrics.amqp.RabbitMetricsAutoConfiguration
+
+  main:
+    allow-bean-definition-overriding: true
+    lazy-initialization: false
+
+  task:
+    scheduling:
+      enabled: false
+
+# Security configuration for tests
+security:
+  basic:
+    enabled: false
+
+# Включаем только необходимые actuator endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+    enabled-by-default: false
+  endpoint:
+    health:
+      enabled: true
+      show-details: always
+    info:
+      enabled: true
+    metrics:
+      enabled: false
+    prometheus:
+      enabled: false
+
+# Logging
+logging:
+  level:
+    com.notificationservice: WARN
+    org.springframework: WARN
+    org.hibernate: WARN
+    org.hibernate.SQL: DEBUG
+
+# Test-specific properties
+notification:
+  email:
+    test-mode: false  # Отключаем тестовый режим для unit тестов
+    from: test@notificationservice.com
+  retry:
+    max-attempts: 1
+    delay: 100
+  async:
+    enabled: false
+
+test:
+  timeout: 30

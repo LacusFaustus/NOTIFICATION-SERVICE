@@ -1,0 +1,107 @@
+groups:
+  - name: notification-service-alerts
+    rules:
+      # High error rate for notifications
+      - alert: HighNotificationErrorRate
+        expr: |
+          rate(notification_emails_failed_total[5m]) / 
+          (rate(notification_emails_sent_total[5m]) + rate(notification_emails_failed_total[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: notifications
+        annotations:
+          summary: "High notification error rate detected"
+          description: "Error rate for notifications is above 10% for the last 5 minutes"
+
+      # No active consumers for RabbitMQ queue
+      - alert: NoQueueConsumers
+        expr: rabbitmq_queue_consumers{queue="notification.queue"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: notifications
+        annotations:
+          summary: "No active consumers for notification queue"
+          description: "There are no active consumers processing messages from the notification queue"
+
+      # High queue backlog
+      - alert: HighQueueBacklog
+        expr: rabbitmq_queue_messages{queue="notification.queue"} > 1000
+        for: 5m
+        labels:
+          severity: warning
+          team: notifications
+        annotations:
+          summary: "High queue backlog detected"
+          description: "Notification queue has more than 1000 messages waiting for processing"
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: |
+          sum(container_memory_usage_bytes{pod=~"notification-service-.*"}) / 
+          sum(container_spec_memory_limit_bytes{pod=~"notification-service-.*"}) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          team: notifications
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is above 80% for notification service pods"
+
+      # Service down
+      - alert: ServiceDown
+        expr: up{job="notification-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: notifications
+        annotations:
+          summary: "Notification service is down"
+          description: "The notification service has been down for more than 1 minute"
+
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: |
+          rate(container_cpu_usage_seconds_total{pod=~"notification-service-.*"}[5m]) / 
+          container_spec_cpu_quota{pod=~"notification-service-.*"} / 1000000 > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          team: notifications
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is above 80% for notification service pods"
+
+      # Redis connection issues
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: notifications
+        annotations:
+          summary: "Redis is down"
+          description: "Redis cache service is not accessible"
+
+      # PostgreSQL connection issues
+      - alert: PostgreSQLDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: notifications
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL database is not accessible"
+
+      # RabbitMQ connection issues
+      - alert: RabbitMQDown
+        expr: rabbitmq_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: notifications
+        annotations:
+          summary: "RabbitMQ is down"
+          description: "RabbitMQ message broker is not accessible"

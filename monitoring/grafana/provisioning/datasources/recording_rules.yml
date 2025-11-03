@@ -1,0 +1,39 @@
+groups:
+  - name: notification-service-recording
+    interval: 30s
+    rules:
+      # Record notification success rate
+      - record: job:notification_success_rate:rate5m
+        expr: |
+          rate(notification_emails_sent_total[5m]) / 
+          (rate(notification_emails_sent_total[5m]) + rate(notification_emails_failed_total[5m]))
+
+      # Record average processing time
+      - record: job:notification_processing_time:avg5m
+        expr: |
+          rate(notification_email_processing_time_seconds_sum[5m]) / 
+          rate(notification_email_processing_time_seconds_count[5m])
+
+      # Record 95th percentile processing time
+      - record: job:notification_processing_time:p95
+        expr: |
+          histogram_quantile(0.95, 
+            rate(notification_email_processing_time_seconds_bucket[5m])
+          )
+
+      # Record queue growth rate
+      - record: job:rabbitmq_queue_growth:rate5m
+        expr: |
+          rate(rabbitmq_queue_messages[5m])
+
+      # Record memory usage percentage
+      - record: job:memory_usage_percentage
+        expr: |
+          container_memory_usage_bytes{pod=~"notification-service-.*"} / 
+          container_spec_memory_limit_bytes{pod=~"notification-service-.*"} * 100
+
+      # Record CPU usage percentage
+      - record: job:cpu_usage_percentage
+        expr: |
+          rate(container_cpu_usage_seconds_total{pod=~"notification-service-.*"}[5m]) / 
+          container_spec_cpu_quota{pod=~"notification-service-.*"} / 1000000 * 100

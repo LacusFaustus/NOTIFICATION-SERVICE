@@ -1,0 +1,216 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'notification-cluster'
+    environment: 'production'
+
+# Alerting configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+      scheme: http
+      timeout: 10s
+      api_version: v2
+
+# Load rules once and periodically evaluate them according to the global 'evaluation_interval'
+rule_files:
+  - "alert_rules.yml"
+  - "recording_rules.yml"
+
+scrape_configs:
+  # Notification Service Application
+  - job_name: 'notification-service'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    metrics_path: '/actuator/prometheus'
+    scheme: 'http'
+    static_configs:
+      - targets: ['notification-service:8080']
+        labels:
+          application: 'notification-service'
+          component: 'backend'
+          environment: 'production'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: 'notification-service:8080'
+
+  # RabbitMQ Monitoring
+  - job_name: 'rabbitmq'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    metrics_path: '/metrics'
+    scheme: 'http'
+    basic_auth:
+      username: 'guest'
+      password: 'guest'
+    static_configs:
+      - targets: ['rabbitmq:15672']
+        labels:
+          application: 'rabbitmq'
+          component: 'message-broker'
+          environment: 'production'
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'rabbitmq_(queue|exchange|node|channel|connection)_.*'
+        action: keep
+
+  # Redis Monitoring
+  - job_name: 'redis'
+    scrape_interval: 15s
+    scrape_timeout: 5s
+    static_configs:
+      - targets: ['redis-exporter:9121']
+        labels:
+          application: 'redis'
+          component: 'cache'
+          environment: 'production'
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'redis_(.*)'
+        action: keep
+
+  # PostgreSQL Monitoring
+  - job_name: 'postgresql'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+        labels:
+          application: 'postgresql'
+          component: 'database'
+          environment: 'production'
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'pg_(.*)'
+        action: keep
+
+  # Node Exporter (System metrics)
+  - job_name: 'node-exporter'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          application: 'node-exporter'
+          component: 'system'
+          environment: 'production'
+
+  # cAdvisor (Container metrics)
+  - job_name: 'cadvisor'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['cadvisor:8080']
+        labels:
+          application: 'cadvisor'
+          component: 'containers'
+          environment: 'production'
+
+  # Kubernetes API Server
+  - job_name: 'kubernetes-apiservers'
+    scrape_interval: 30s
+    scheme: 'https'
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    kubernetes_sd_configs:
+      - role: endpoints
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: default;kubernetes;https
+
+  # Kubernetes Nodes
+  - job_name: 'kubernetes-nodes'
+    scrape_interval: 30s
+    scheme: 'https'
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    kubernetes_sd_configs:
+      - role: node
+    relabel_configs:
+      - action: labelmap
+        regex: __meta_kubernetes_node_label_(.+)
+      - target_label: __address__
+        replacement: kubernetes.default.svc:443
+      - source_labels: [__meta_kubernetes_node_name]
+        regex: (.+)
+        target_label: __metrics_path__
+        replacement: /api/v1/nodes/${1}/proxy/metrics
+
+  # Kubernetes Pods
+  - job_name: 'kubernetes-pods'
+    scrape_interval: 30s
+    kubernetes_sd_configs:
+      - role: pod
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - source_labels: [__meta_kubernetes_namespace]
+        action: replace
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_pod_name]
+        action: replace
+        target_label: kubernetes_pod_name
+
+# Storage configuration
+storage:
+  tsdb:
+    path: /prometheus
+    retention: 15d
+    min-block-duration: 2h
+    max-block-duration: 24h
+
+# Remote write configuration (optional)
+remote_write:
+  - url: "http://thanos-receive:10908/api/v1/receive"
+    remote_timeout: 30s
+    queue_config:
+      capacity: 2500
+      max_shards: 200
+      min_shards: 1
+      max_samples_per_send: 500
+      batch_send_deadline: 5s
+      min_backoff: 30ms
+      max_backoff: 100ms
+
+# Remote read configuration (optional)
+remote_read:
+  - url: "http://thanos-query:10902/api/v1/read"
+    read_recent: true
+
+# Web configuration
+web:
+  enable_remote_shutdown: false
+  enable_admin_api: false
+  page_title: "Prometheus - Notification Service"
+  max_connections: 512
+  read_timeout: 5m
+  write_timeout: 5m
+
+# Query configuration
+query:
+  lookback_delta: 5m
+  max_concurrency: 20
+  timeout: 2m
+
+# Exemplars configuration
+exemplars:
+  max_exemplars: 100000

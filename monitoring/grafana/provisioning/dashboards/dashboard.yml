@@ -1,0 +1,193 @@
+apiVersion: 1
+
+providers:
+  - name: 'Notification Service'
+    orgId: 1
+    folder: 'Microservices'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards
+      foldersFromFilesStructure: true
+
+# Dashboard configuration for auto-provisioning
+dashboards:
+  - name: 'Notification Service Dashboard'
+    orgId: 1
+    folder: 'Microservices'
+    type: file
+    options:
+      path: /etc/grafana/provisioning/dashboards/notification-dashboard.json
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+
+  - name: 'RabbitMQ Monitoring'
+    orgId: 1
+    folder: 'Infrastructure'
+    type: file
+    options:
+      path: /etc/grafana/provisioning/dashboards/rabbitmq-dashboard.json
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+
+# Folder configuration
+folders:
+  - name: Microservices
+    orgId: 1
+    title: Microservices Monitoring
+    uid: microservices-folder
+    version: 1
+
+  - name: Infrastructure
+    orgId: 1
+    title: Infrastructure Monitoring
+    uid: infrastructure-folder
+    version: 1
+
+# Default dashboard settings
+default:
+  timezone: browser
+  time:
+    from: "now-1h"
+    to: "now"
+  refresh: "30s"
+  timepicker:
+    refresh_intervals:
+      - "5s"
+      - "10s"
+      - "30s"
+      - "1m"
+      - "5m"
+      - "15m"
+      - "30m"
+      - "1h"
+      - "2h"
+      - "1d"
+    time_options:
+      - "5m"
+      - "15m"
+      - "1h"
+      - "6h"
+      - "12h"
+      - "24h"
+      - "2d"
+      - "7d"
+      - "30d"
+
+# Annotation sources
+annotations:
+  - name: Deployment Events
+    datasource: "Prometheus"
+    enable: true
+    iconColor: "red"
+    target:
+      expr: 'kube_deployment_status_replicas{deployment="notification-service"}'
+      step: "30s"
+
+# Template variables (for dynamic dashboards)
+templates:
+  - name: environment
+    label: Environment
+    type: query
+    datasource: Prometheus
+    refresh: 1
+    query: 'label_values(up, environment)'
+    multi: false
+    includeAll: false
+    default: "production"
+
+  - name: instance
+    label: Instance
+    type: query
+    datasource: Prometheus
+    refresh: 1
+    query: 'label_values(up{environment="$environment"}, instance)'
+    multi: true
+    includeAll: true
+    default: "all"
+
+  - name: queue
+    label: Queue
+    type: query
+    datasource: Prometheus
+    refresh: 1
+    query: 'label_values(rabbitmq_queue_messages, queue)'
+    multi: false
+    includeAll: false
+    default: "notification.queue"
+
+# Alert configurations
+alerts:
+  - name: HighQueueBacklog
+    condition: "rabbitmq_queue_messages{queue=\"notification.queue\"} > 1000"
+    duration: "5m"
+    severity: "warning"
+    summary: "High queue backlog detected"
+    description: "Notification queue has more than 1000 messages waiting for processing"
+
+  - name: NoActiveConsumers
+    condition: "rabbitmq_queue_consumers{queue=\"notification.queue\"} == 0"
+    duration: "2m"
+    severity: "critical"
+    summary: "No active consumers for notification queue"
+    description: "There are no active consumers processing messages from the notification queue"
+
+  - name: HighErrorRate
+    condition: "rate(notification_emails_failed_total[5m]) / rate(notification_emails_sent_total[5m] + notification_emails_failed_total[5m]) > 0.1"
+    duration: "5m"
+    severity: "warning"
+    summary: "High email error rate detected"
+    description: "More than 10% of email notifications are failing"
+
+# Dashboard links
+links:
+  - title: "Notification Service GitHub"
+    type: "link"
+    url: "https://github.com/your-org/notification-service"
+    icon: "external link"
+    tags: ["documentation", "github"]
+    targetBlank: true
+
+  - title: "API Documentation"
+    type: "link"
+    url: "http://localhost:8080/swagger-ui.html"
+    icon: "book"
+    tags: ["api", "documentation"]
+    targetBlank: true
+
+  - title: "Service Health"
+    type: "dashboards"
+    tags: ["health", "monitoring"]
+    searchFilter: "health"
+    asDropdown: false
+
+# Playlist configuration
+playlists:
+  - name: "Notification Service Overview"
+    interval: "5m"
+    items:
+      - title: "Notification Service Dashboard"
+        type: "dashboard_by_uid"
+        value: "notification-service"
+      - title: "RabbitMQ Monitoring"
+        type: "dashboard_by_uid"
+        value: "rabbitmq-monitoring"
+
+# Snapshot configuration
+snapshot:
+  enabled: true
+  removeExpired: true
+  snapshotRemoveExpired: true
+  externalEnabled: true
+  externalSnapshotURL: ""
+  externalSnapshotName: ""
+  publicMode: false
+
+# Reporting configuration
+reporting:
+  enabled: false
+  storage: "database"
