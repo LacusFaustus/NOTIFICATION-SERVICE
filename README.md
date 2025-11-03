@@ -1,6 +1,9 @@
 # Notification Service
 
-A high-performance, scalable microservice for handling email and push notifications asynchronously using RabbitMQ.
+![Java CI](https://github.com/LacusFaustus/NOTIFICATION-SERVICE/actions/workflows/ci.yml/badge.svg)
+![Coverage](https://img.shields.io/badge/coverage-85%25-brightgreen)
+
+A high-performance microservice for handling email and push notifications...
 
 ## Features
 
