@@ -66,4 +66,56 @@ class TemplateServiceTest {
         assertNotNull(result);
         assertTrue(result.contains("Template not found"));
     }
+
+    @Test
+    void findAllTemplates_ShouldReturnNull() {
+        // Act
+        var result = templateService.findAllTemplates();
+
+        // Assert
+        assertNull(result);
+    }
+
+    @Test
+    void getTemplate_ShouldReturnNull() {
+        // Act
+        var result = templateService.getTemplate("test-id");
+
+        // Assert
+        assertNull(result);
+    }
+
+    @Test
+    void createTemplate_ShouldReturnNull() {
+        // Act
+        var result = templateService.createTemplate(null);
+
+        // Assert
+        assertNull(result);
+    }
+
+    @Test
+    void updateTemplate_ShouldReturnNull() {
+        // Act
+        var result = templateService.updateTemplate("test-id", null);
+
+        // Assert
+        assertNull(result);
+    }
+
+    @Test
+    void deleteTemplate_ShouldDoNothing() {
+        // Act & Assert - should not throw exception
+        assertDoesNotThrow(() -> {
+            templateService.deleteTemplate("test-id");
+        });
+    }
+
+    @Test
+    void evictTemplateCache_ShouldDoNothing() {
+        // Act & Assert - should not throw exception
+        assertDoesNotThrow(() -> {
+            templateService.evictTemplateCache("test-id");
+        });
+    }
 }

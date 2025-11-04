@@ -67,3 +67,6 @@ notification:
     max-size: 10485760
     allowed-types: pdf,doc,docx,jpg,jpeg,png,txt
     storage-path: ./attachments
+
+jwt:
+  secret: "mySecretKeymySecretKeymySecretKeymySecretKey"

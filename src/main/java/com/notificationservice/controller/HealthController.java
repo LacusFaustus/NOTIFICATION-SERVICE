@@ -4,9 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthComponent;
-import org.springframework.boot.actuate.health.HealthEndpoint;
 import org.springframework.boot.actuate.health.Status;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,7 +21,7 @@ import java.util.Map;
 @Tag(name = "Health", description = "Health check endpoints")
 public class HealthController {
 
-    private final HealthEndpoint healthEndpoint;
+    private final org.springframework.boot.actuate.health.HealthEndpoint healthEndpoint;
 
     @GetMapping
     @Operation(summary = "Get application health status")
@@ -32,15 +30,8 @@ public class HealthController {
             HealthComponent healthComponent = healthEndpoint.health();
             Map<String, Object> response = new HashMap<>();
             response.put("status", healthComponent.getStatus().getCode());
-
-            // Для HealthComponent используем другой подход - без getComponents()
-            if (healthComponent instanceof Health) {
-                Health health = (Health) healthComponent;
-                // Вместо getComponents() используем getDetails()
-                response.put("details", health.getDetails());
-            } else {
-                response.put("details", Map.of("message", "Application is running"));
-            }
+            response.put("service", "notification-service");
+            response.put("timestamp", java.time.LocalDateTime.now().toString());
 
             if (healthComponent.getStatus() == Status.UP) {
                 return ResponseEntity.ok(response);
@@ -52,6 +43,7 @@ public class HealthController {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("status", "DOWN");
             errorResponse.put("error", e.getMessage());
+            errorResponse.put("timestamp", java.time.LocalDateTime.now().toString());
             return ResponseEntity.status(503).body(errorResponse);
         }
     }
@@ -70,10 +62,18 @@ public class HealthController {
 
     private ResponseEntity<Map<String, Object>> getHealthStatus(String probeType) {
         try {
-            HealthComponent healthComponent = healthEndpoint.healthForPath(probeType);
+            HealthComponent healthComponent;
+            try {
+                healthComponent = healthEndpoint.healthForPath(probeType);
+            } catch (Exception e) {
+                // If specific probe is not available, use general health
+                healthComponent = healthEndpoint.health();
+            }
+
             Map<String, Object> response = new HashMap<>();
             response.put("status", healthComponent.getStatus().getCode());
             response.put("type", probeType);
+            response.put("timestamp", java.time.LocalDateTime.now().toString());
 
             if (healthComponent.getStatus() == Status.UP) {
                 return ResponseEntity.ok(response);
@@ -86,6 +86,7 @@ public class HealthController {
             errorResponse.put("status", "DOWN");
             errorResponse.put("type", probeType);
             errorResponse.put("error", e.getMessage());
+            errorResponse.put("timestamp", java.time.LocalDateTime.now().toString());
             return ResponseEntity.status(503).body(errorResponse);
         }
     }

@@ -59,17 +59,17 @@ public class NotificationService {
             }
 
             // Create and save notification entity with PENDING status
-            Notification notification = createEmailNotification(request);
+            Notification notification = createEmailNotification(request, notificationId);
             notification.setMessage(finalMessage);
 
             Notification savedNotification = notificationRepository.save(notification);
             log.info("Saved email notification with ID: {}", savedNotification.getId());
 
             try {
-                // Send email - этот вызов может выбросить исключение
+                // Send email
                 emailService.sendEmail(notification);
 
-                // Если отправка успешна - обновляем статус на SENT
+                // If sending successful - update status to SENT
                 savedNotification.setStatus("SENT");
                 savedNotification.setSentAt(LocalDateTime.now());
                 notificationRepository.save(savedNotification);
@@ -87,7 +87,7 @@ public class NotificationService {
 
             } catch (Exception e) {
                 log.error("Failed to send email for notification ID: {}", savedNotification.getId(), e);
-                // Если отправка не удалась - обновляем статус на FAILED
+                // If sending failed - update status to FAILED
                 savedNotification.setStatus("FAILED");
                 savedNotification.setErrorMessage(e.getMessage());
                 notificationRepository.save(savedNotification);
@@ -133,7 +133,7 @@ public class NotificationService {
             }
 
             // Create notification entity
-            Notification notification = createPushNotification(request);
+            Notification notification = createPushNotification(request, notificationId);
 
             // Save initial notification
             Notification savedNotification = notificationRepository.save(notification);
@@ -239,11 +239,11 @@ public class NotificationService {
                 request.getMessage() != null && !request.getMessage().isEmpty();
     }
 
-    private Notification createEmailNotification(EmailRequest request) {
+    private Notification createEmailNotification(EmailRequest request, String notificationId) {
         Notification notification = new Notification();
-        notification.setId(generateId());
+        notification.setId(notificationId);
         notification.setType("EMAIL");
-        notification.setStatus("PENDING"); // Начальный статус
+        notification.setStatus("PENDING"); // Initial status
         notification.setRecipient(request.getTo());
         notification.setSubject(request.getSubject());
         notification.setMessage(request.getMessage());
@@ -253,11 +253,11 @@ public class NotificationService {
         return notification;
     }
 
-    private Notification createPushNotification(PushRequest request) {
+    private Notification createPushNotification(PushRequest request, String notificationId) {
         Notification notification = new Notification();
-        notification.setId(generateId());
+        notification.setId(notificationId);
         notification.setType("PUSH");
-        notification.setStatus("PENDING"); // Начальный статус
+        notification.setStatus("PENDING"); // Initial status
         notification.setRecipient(request.getUserId());
         notification.setTitle(request.getTitle());
         notification.setMessage(request.getMessage());

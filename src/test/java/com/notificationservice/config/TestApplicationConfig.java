@@ -18,7 +18,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
         excludeFilters = {
                 @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com\\.notificationservice\\.config\\.MonitoringConfig"),
                 @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com\\.notificationservice\\.config\\.RabbitMQConfig"),
-                @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com\\.notificationservice\\.controller\\.HealthController")
+                @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com\\.notificationservice\\.config\\.JwtConfig")
         }
 )
 public class TestApplicationConfig {

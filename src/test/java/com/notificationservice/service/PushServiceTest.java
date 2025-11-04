@@ -8,7 +8,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -32,33 +32,21 @@ class PushServiceTest {
     }
 
     @Test
-    void sendPush_WithValidNotification_ShouldSendPush() {
+    void sendPush_WithValidNotification_ShouldSendSuccessfully() {
         // Act
         pushService.sendPush(testNotification);
 
-        // Assert
-        verify(metricsService, never()).recordPushFailed();
-        // В реальной реализации здесь была бы проверка вызова внешнего сервиса
-    }
-
-    @Test
-    void sendPush_WithPushException_ShouldRecordFailure() {
-        // Arrange
-        // В реальной реализации здесь был бы мок внешнего сервиса
-
-        // Act
-        pushService.sendPush(testNotification);
-
-        // Assert
-        // В реальной реализации здесь была бы проверка обработки ошибки
+        // Assert - should complete without exceptions
         verify(metricsService, never()).recordPushFailed();
     }
 
     @Test
     void sendPush_WithNullNotification_ShouldThrowException() {
         // Act & Assert
-        assertThrows(IllegalArgumentException.class, () -> {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             pushService.sendPush(null);
         });
+
+        assertEquals("Notification cannot be null", exception.getMessage());
     }
 }
