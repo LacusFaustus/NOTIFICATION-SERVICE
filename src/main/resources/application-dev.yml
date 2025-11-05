@@ -17,6 +17,7 @@ spring:
       hibernate:
         format_sql: true
         use_sql_comments: true
+        dialect: org.hibernate.dialect.H2Dialect
 
   h2:
     console:
@@ -44,7 +45,7 @@ security:
 # Notification Configuration
 notification:
   email:
-    test-mode: true  # Включаем тестовый режим для dev
+    test-mode: true
     from: dev@notificationservice.com
   retry:
     max-attempts: 1

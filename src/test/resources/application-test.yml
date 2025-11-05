@@ -116,7 +116,7 @@ logging:
 # Test-specific properties
 notification:
   email:
-    test-mode: false  # Отключаем тестовый режим для unit тестов
+    test-mode: false
     from: test@notificationservice.com
   retry:
     max-attempts: 1

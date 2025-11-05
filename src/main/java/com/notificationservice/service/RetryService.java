@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -28,8 +29,14 @@ public class RetryService {
     private long backoffDelay;
 
     public void retryFailedNotification(String notificationId) {
-        Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new RuntimeException("Notification not found: " + notificationId));
+        Optional<Notification> notificationOpt = notificationRepository.findById(notificationId);
+
+        if (notificationOpt.isEmpty()) {
+            log.warn("Cannot retry notification: notification not found with id: {}", notificationId);
+            return;
+        }
+
+        Notification notification = notificationOpt.get();
 
         if (notification.getRetryCount() >= maxRetryAttempts) {
             log.warn("Notification {} has reached maximum retry attempts ({}), moving to DLQ",
@@ -79,6 +86,10 @@ public class RetryService {
         }
     }
 
+    public List<Notification> getNotificationsForRetry() {
+        return notificationRepository.findByStatusAndRetryCountLessThan("FAILED", maxRetryAttempts);
+    }
+
     private long calculateBackoffDelay(int retryCount) {
         return (long) (backoffDelay * Math.pow(2, retryCount));
     }
@@ -98,9 +109,5 @@ public class RetryService {
                 "notification.dlq.routing.key",
                 notification.getId()
         );
-    }
-
-    public List<Notification> getNotificationsForRetry() {
-        return notificationRepository.findByStatusAndRetryCountLessThan("FAILED", maxRetryAttempts);
     }
 }

@@ -12,10 +12,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class PushRequest {
 
-    public enum Priority {
-        LOW, NORMAL, HIGH
-    }
-
     @NotBlank(message = "User ID is required")
     private String userId;
 
@@ -30,4 +26,14 @@ public class PushRequest {
 
     @Pattern(regexp = "ANDROID|IOS|ALL", message = "Platform must be ANDROID, IOS or ALL")
     private String platform = "ALL";
+
+    public boolean isValid() {
+        return userId != null && !userId.trim().isEmpty() &&
+                title != null && !title.trim().isEmpty() &&
+                message != null && !message.trim().isEmpty();
+    }
+
+    public enum Priority {
+        LOW, NORMAL, HIGH
+    }
 }
