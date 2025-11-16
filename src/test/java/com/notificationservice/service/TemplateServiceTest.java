@@ -1,121 +1,86 @@
 package com.notificationservice.service;
 
-import org.junit.jupiter.api.BeforeEach;
+import com.notificationservice.entity.NotificationTemplate;
+import com.notificationservice.repository.TemplateRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Map;
+import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class TemplateServiceTest {
+
+    @Mock
+    private TemplateRepository templateRepository;
+
+    @Mock
+    private TemplateProcessor templateProcessor;
 
     @InjectMocks
     private TemplateService templateService;
 
     @Test
-    void processTemplate_WithValidTemplateAndVariables_ShouldReturnProcessedContent() {
+    void getTemplate_WithExistingId_ShouldReturnTemplate() {
         // Arrange
-        String templateId = "welcome-template";
-        Map<String, Object> variables = Map.of("name", "John", "company", "Test Corp");
+        String templateId = "test-template";
+        NotificationTemplate template = new NotificationTemplate();
+        template.setId(templateId);
+        template.setName("Test Template");
+
+        when(templateRepository.findById(templateId)).thenReturn(Optional.of(template));
 
         // Act
-        String result = templateService.processTemplate(templateId, variables);
+        NotificationTemplate result = templateService.getTemplate(templateId);
 
         // Assert
         assertNotNull(result);
-        assertTrue(result.contains("John"));
-        assertTrue(result.contains("Test Corp"));
+        assertEquals(templateId, result.getId());
+        verify(templateRepository, times(1)).findById(templateId);
     }
 
     @Test
-    void processTemplate_WithNullTemplateId_ShouldThrowException() {
+    void findAllTemplates_ShouldReturnAllTemplates() {
         // Arrange
-        Map<String, Object> variables = Map.of("name", "John");
+        NotificationTemplate template1 = new NotificationTemplate();
+        template1.setId("template-1");
+        NotificationTemplate template2 = new NotificationTemplate();
+        template2.setId("template-2");
 
-        // Act & Assert
-        assertThrows(IllegalArgumentException.class, () -> {
-            templateService.processTemplate(null, variables);
-        });
-    }
-
-    @Test
-    void processTemplate_WithEmptyTemplateId_ShouldThrowException() {
-        // Arrange
-        Map<String, Object> variables = Map.of("name", "John");
-
-        // Act & Assert
-        assertThrows(IllegalArgumentException.class, () -> {
-            templateService.processTemplate("", variables);
-        });
-    }
-
-    @Test
-    void processTemplate_WithNonExistentTemplate_ShouldReturnDefaultMessage() {
-        // Arrange
-        String templateId = "non-existent-template";
-        Map<String, Object> variables = Map.of("name", "John");
+        when(templateRepository.findAll()).thenReturn(List.of(template1, template2));
 
         // Act
-        String result = templateService.processTemplate(templateId, variables);
+        List<NotificationTemplate> result = templateService.findAllTemplates();
+
+        // Assert
+        assertEquals(2, result.size());
+        verify(templateRepository, times(1)).findAll();
+    }
+
+    @Test
+    void createTemplate_WithValidTemplate_ShouldSaveAndReturn() {
+        // Arrange
+        NotificationTemplate template = new NotificationTemplate();
+        template.setName("New Template");
+        template.setType("EMAIL");
+        template.setSubject("Test Subject");
+        template.setContent("Test Content");
+
+        when(templateRepository.findByName("New Template")).thenReturn(Optional.empty());
+        when(templateRepository.save(any(NotificationTemplate.class))).thenReturn(template);
+
+        // Act
+        NotificationTemplate result = templateService.createTemplate(template);
 
         // Assert
         assertNotNull(result);
-        assertTrue(result.contains("Template not found"));
-    }
-
-    @Test
-    void findAllTemplates_ShouldReturnNull() {
-        // Act
-        var result = templateService.findAllTemplates();
-
-        // Assert
-        assertNull(result);
-    }
-
-    @Test
-    void getTemplate_ShouldReturnNull() {
-        // Act
-        var result = templateService.getTemplate("test-id");
-
-        // Assert
-        assertNull(result);
-    }
-
-    @Test
-    void createTemplate_ShouldReturnNull() {
-        // Act
-        var result = templateService.createTemplate(null);
-
-        // Assert
-        assertNull(result);
-    }
-
-    @Test
-    void updateTemplate_ShouldReturnNull() {
-        // Act
-        var result = templateService.updateTemplate("test-id", null);
-
-        // Assert
-        assertNull(result);
-    }
-
-    @Test
-    void deleteTemplate_ShouldDoNothing() {
-        // Act & Assert - should not throw exception
-        assertDoesNotThrow(() -> {
-            templateService.deleteTemplate("test-id");
-        });
-    }
-
-    @Test
-    void evictTemplateCache_ShouldDoNothing() {
-        // Act & Assert - should not throw exception
-        assertDoesNotThrow(() -> {
-            templateService.evictTemplateCache("test-id");
-        });
+        verify(templateRepository, times(1)).save(any(NotificationTemplate.class));
     }
 }

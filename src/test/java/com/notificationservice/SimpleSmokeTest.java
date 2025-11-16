@@ -1,21 +1,13 @@
-package com.notificationservice.unit;
+package com.notificationservice;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@ExtendWith(MockitoExtension.class)
-class SimpleUnitTest {
+class SimpleSmokeTest {
 
     @Test
-    void basicTest() {
-        assertTrue(true, "This should always pass");
-    }
-
-    @Test
-    void mathTest() {
+    void basicMathTest() {
         assertEquals(4, 2 + 2, "Basic math should work");
     }
 
@@ -24,5 +16,11 @@ class SimpleUnitTest {
         String message = "Hello, Test!";
         assertNotNull(message);
         assertTrue(message.contains("Test"));
+    }
+
+    @Test
+    void objectCreationTest() {
+        Object obj = new Object();
+        assertNotNull(obj);
     }
 }

@@ -77,25 +77,4 @@ class EmailServiceTest {
         verify(metricsService, never()).recordEmailSent();
         verify(metricsService, never()).recordEmailFailed();
     }
-
-    @Test
-    void sendEmail_InTestMode_ShouldLogAndRecordMetricsWithoutSending() {
-        // Arrange
-        EmailService testEmailService = new EmailService(mailSender, metricsService) {
-            {
-                // Override test mode for this test
-                // In real scenario, this would be set via @Value
-            }
-        };
-
-        // Use reflection to set testMode (simplified for test)
-        // In real scenario, you'd use @TestPropertySource or mock the property
-
-        // For now, we'll test the normal mode behavior
-        emailService.sendEmail(testNotification);
-
-        // Assert - should still call mailSender in normal mode
-        verify(mailSender, times(1)).send(any(SimpleMailMessage.class));
-        verify(metricsService, times(1)).recordEmailSent();
-    }
 }

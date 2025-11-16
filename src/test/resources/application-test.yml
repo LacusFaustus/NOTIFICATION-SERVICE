@@ -1,10 +1,6 @@
 spring:
-  config:
-    activate:
-      on-profile: test
-
   datasource:
-    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     username: sa
     password: ""
     driver-class-name: org.h2.Driver
@@ -16,117 +12,39 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
-        format_sql: false
-        use_sql_comments: false
-    defer-datasource-initialization: false
 
   h2:
     console:
       enabled: false
 
-  flyway:
-    enabled: false
-
-  sql:
-    init:
-      mode: never
-      data-locations: ""
-
-  # Отключаем внешние зависимости для тестов
-  data:
-    redis:
-      enabled: false
-  rabbitmq:
-    enabled: false
-    listener:
-      type: simple
-      simple:
-        auto-startup: false
   mail:
     host: localhost
     port: 1025
-    properties:
-      mail:
-        smtp:
-          auth: false
-          starttls:
-            enable: false
 
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
-      - org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
-      - org.springframework.boot.actuate.autoconfigure.metrics.amqp.RabbitMetricsAutoConfiguration
-      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+  flyway:
+    enabled: false
 
   security:
-    enabled: false
+    oauth2:
+      resourceserver:
+        jwt:
+          enabled: false
 
-  main:
-    allow-bean-definition-overriding: true
-    lazy-initialization: false
-
-  task:
-    scheduling:
-      enabled: false
-
-# Security configuration for tests
-security:
-  basic:
-    enabled: false
-
-# Настраиваем health checks для тестов
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
-    enabled-by-default: false
+        include: health,info,metrics
   endpoint:
     health:
       enabled: true
-      show-details: always
-      show-components: never
-    info:
-      enabled: true
-    metrics:
-      enabled: false
-    prometheus:
-      enabled: false
-  health:
-    db:
-      enabled: false
-    redis:
-      enabled: false
-    rabbit:
-      enabled: false
-    diskspace:
-      enabled: false
-    defaults:
-      enabled: false
 
-# Logging
 logging:
   level:
-    com.notificationservice: WARN
+    com.notificationservice: INFO
     org.springframework: WARN
-    org.hibernate: WARN
-    org.hibernate.SQL: DEBUG
+    org.hibernate: ERROR
 
-# Test-specific properties
 notification:
   email:
-    test-mode: false
-    from: test@notificationservice.com
-  retry:
-    max-attempts: 1
-    delay: 100
-  async:
-    enabled: false
-
-test:
-  timeout: 30
-
-# JWT configuration for tests
-jwt:
-  secret: "testSecretKeyForTestingPurposesOnly"
+    test-mode: true

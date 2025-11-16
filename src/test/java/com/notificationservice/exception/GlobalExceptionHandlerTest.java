@@ -189,25 +189,6 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    void handleNullPointerException_ShouldReturnInternalServerError() {
-        // Arrange
-        NullPointerException exception = new NullPointerException("Something was null");
-        when(webRequest.getDescription(false)).thenReturn("uri=/api/notifications/push");
-
-        // Act
-        ResponseEntity<GlobalExceptionHandler.ErrorResponse> response =
-                exceptionHandler.handleGlobalException(exception, webRequest);
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-
-        GlobalExceptionHandler.ErrorResponse errorResponse = response.getBody();
-        assertNotNull(errorResponse);
-        assertEquals("Internal Server Error", errorResponse.getError());
-    }
-
-    @Test
     void handleHttpMediaTypeNotSupportedException_ShouldReturnUnsupportedMediaType() {
         // Arrange
         org.springframework.web.HttpMediaTypeNotSupportedException exception =

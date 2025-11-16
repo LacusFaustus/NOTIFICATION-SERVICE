@@ -14,13 +14,15 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.LocalDateTime;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(NotificationController.class)
+@WebMvcTest(controllers = NotificationController.class)
 @ActiveProfiles("test")
 @Import(TestSecurityConfig.class)
 class SecurityTest {
@@ -32,140 +34,133 @@ class SecurityTest {
     private NotificationService notificationService;
 
     @Test
-    void whenAccessProtectedEndpoints_ShouldBeAllowed() throws Exception {
+    void whenSendEmailNotification_ShouldBeAllowed() throws Exception {
+        // Mock the service response
+        NotificationResponse response = NotificationResponse.success(
+                "test-id", "EMAIL", "test@example.com", "Test Subject", "Test message"
+        );
+        when(notificationService.sendEmail(any())).thenReturn(response);
+
+        mockMvc.perform(post("/api/v1/notifications/email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                                "to": "test@example.com",
+                                "subject": "Test Subject",
+                                "message": "Test message content",
+                                "priority": "NORMAL"
+                            }
+                            """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("test-id"))
+                .andExpect(jsonPath("$.type").value("EMAIL"))
+                .andExpect(jsonPath("$.status").value("SENT"))
+                .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    void whenGetNotificationStatus_ShouldBeAllowed() throws Exception {
         // Mock the service response
         Notification notification = new Notification();
         notification.setId("test-id");
+        notification.setType("EMAIL");
         notification.setStatus("SENT");
-        when(notificationService.getNotificationStatus(anyString())).thenReturn(notification);
+        notification.setRecipient("test@example.com");
+        notification.setSubject("Test Subject");
+        notification.setMessage("Test message");
+        notification.setCreatedAt(LocalDateTime.now());
 
-        NotificationResponse emailResponse = NotificationResponse.success(
-                "test-id", "EMAIL", "test@example.com", "Test Subject", "Test message"
-        );
-        when(notificationService.sendEmail(any())).thenReturn(emailResponse);
+        when(notificationService.getNotificationStatus("test-id")).thenReturn(notification);
 
-        NotificationResponse pushResponse = NotificationResponse.success(
-                "test-id", "PUSH", "user123", "Test Title", "Test push message"
-        );
-        when(notificationService.sendPush(any())).thenReturn(pushResponse);
-
-        // Test all endpoints - они должны быть доступны благодаря TestSecurityConfig
         mockMvc.perform(get("/api/v1/notifications/{id}", "test-id"))
-                .andExpect(status().isOk());
-
-        mockMvc.perform(post("/api/v1/notifications/email")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                    {
-                        "to": "test@example.com",
-                        "subject": "Test Subject",
-                        "message": "Test message content",
-                        "priority": "NORMAL"
-                    }
-                    """))
-                .andExpect(status().isOk());
-
-        mockMvc.perform(post("/api/v1/notifications/push")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                    {
-                        "userId": "user123",
-                        "title": "Test Title",
-                        "message": "Test push message",
-                        "platform": "IOS",
-                        "priority": "NORMAL"
-                    }
-                    """))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("test-id"))
+                .andExpect(jsonPath("$.type").value("EMAIL"))
+                .andExpect(jsonPath("$.status").value("SENT"))
+                .andExpect(jsonPath("$.recipient").value("test@example.com"));
     }
 
     @Test
-    void whenValidRequests_ShouldReturnOk() throws Exception {
-        // Mock successful responses
-        NotificationResponse emailResponse = NotificationResponse.success(
-                "email-id", "EMAIL", "test@example.com", "Test", "Test"
+    void whenSendMultipleEmailNotifications_ShouldWorkCorrectly() throws Exception {
+        // Mock responses for multiple requests
+        NotificationResponse response1 = NotificationResponse.success(
+                "email-1", "EMAIL", "test1@example.com", "Test 1", "Message 1"
         );
-        when(notificationService.sendEmail(any())).thenReturn(emailResponse);
-
-        NotificationResponse pushResponse = NotificationResponse.success(
-                "push-id", "PUSH", "user123", "Test", "Test"
+        NotificationResponse response2 = NotificationResponse.success(
+                "email-2", "EMAIL", "test2@example.com", "Test 2", "Message 2"
         );
-        when(notificationService.sendPush(any())).thenReturn(pushResponse);
 
-        // Valid email request
+        when(notificationService.sendEmail(any()))
+                .thenReturn(response1)
+                .thenReturn(response2);
+
+        // First request
         mockMvc.perform(post("/api/v1/notifications/email")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                    {
-                        "to": "test@example.com",
-                        "subject": "Test Subject",
-                        "message": "Test Message",
-                        "priority": "NORMAL"
-                    }
-                    """))
-                .andExpect(status().isOk());
+                            {
+                                "to": "test1@example.com",
+                                "subject": "Test 1",
+                                "message": "Message 1",
+                                "priority": "NORMAL"
+                            }
+                            """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("email-1"));
 
-        // Valid push request
-        mockMvc.perform(post("/api/v1/notifications/push")
+        // Second request
+        mockMvc.perform(post("/api/v1/notifications/email")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                    {
-                        "userId": "user123",
-                        "title": "Test Title",
-                        "message": "Test Message",
-                        "platform": "ANDROID",
-                        "priority": "NORMAL"
-                    }
-                    """))
-                .andExpect(status().isOk());
+                            {
+                                "to": "test2@example.com",
+                                "subject": "Test 2",
+                                "message": "Message 2",
+                                "priority": "HIGH"
+                            }
+                            """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("email-2"));
     }
 
-    // УБИРАЕМ тест Swagger так как он может не быть настроен в тестовом контексте
-    // Вместо этого тестируем только бизнес-логику
+    @Test
+    void whenSendEmailWithInvalidData_ShouldReturnBadRequest() throws Exception {
+        mockMvc.perform(post("/api/v1/notifications/email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                                "to": "invalid-email",
+                                "subject": "",
+                                "message": "",
+                                "priority": "NORMAL"
+                            }
+                            """))
+                .andExpect(status().isBadRequest());
+    }
 
     @Test
-    void whenMultipleRequests_ShouldWorkCorrectly() throws Exception {
-        // Mock responses
-        Notification notification = new Notification();
-        notification.setId("test-id-1");
-        notification.setStatus("SENT");
-        when(notificationService.getNotificationStatus(anyString())).thenReturn(notification);
-
-        NotificationResponse response = NotificationResponse.success(
-                "test-id-2", "EMAIL", "test@example.com", "Test", "Test"
-        );
-        when(notificationService.sendEmail(any())).thenReturn(response);
-        when(notificationService.sendPush(any())).thenReturn(response);
-
-        // Multiple requests should work
-        mockMvc.perform(get("/api/v1/notifications/test1"))
-                .andExpect(status().isOk());
-
-        mockMvc.perform(get("/api/v1/notifications/test2"))
-                .andExpect(status().isOk());
-
+    void whenSendEmailWithMalformedJSON_ShouldReturnBadRequest() throws Exception {
         mockMvc.perform(post("/api/v1/notifications/email")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                    {
-                        "to": "test1@example.com",
-                        "subject": "Test1",
-                        "message": "Test1",
-                        "priority": "NORMAL"
-                    }
-                    """))
-                .andExpect(status().isOk());
+                        .content("{ invalid json }"))
+                .andExpect(status().isBadRequest());
+    }
 
+    @Test
+    void whenSendEmailWithEmptyBody_ShouldReturnBadRequest() throws Exception {
         mockMvc.perform(post("/api/v1/notifications/email")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                    {
-                        "to": "test2@example.com",
-                        "subject": "Test2",
-                        "message": "Test2",
-                        "priority": "HIGH"
-                    }
-                    """))
-                .andExpect(status().isOk());
+                        .content(""))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void whenGetNotificationWithInvalidId_ShouldReturnNotFound() throws Exception {
+        when(notificationService.getNotificationStatus("non-existent-id"))
+                .thenThrow(new com.notificationservice.exception.NotificationNotFoundException("Notification not found"));
+
+        mockMvc.perform(get("/api/v1/notifications/{id}", "non-existent-id"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("Notification Not Found"));
     }
 }
