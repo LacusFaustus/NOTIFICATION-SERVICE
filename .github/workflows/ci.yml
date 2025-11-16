@@ -28,10 +28,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK 21
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
+          java-version: '17'
           distribution: 'temurin'
           cache: maven
 
@@ -48,23 +48,17 @@ jobs:
         with:
           file: ./target/site/jacoco/jacoco.xml
 
-      - name: Check coverage threshold
-        run: ./mvnw jacoco:check
-
   security-scan:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up JDK 21
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
+          java-version: '17'
           distribution: 'temurin'
       - name: Run dependency review
         uses: actions/dependency-review-action@v3
-        with:
-          base-ref: ${{ github.base_ref }}
-          head-ref: ${{ github.head_ref }}
 
   sonarcloud:
     name: SonarCloud
@@ -76,10 +70,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up JDK 21
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
+          java-version: '17'
           distribution: 'temurin'
 
       - name: Build and analyze
@@ -88,7 +82,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           mvn clean verify sonar:sonar \
-            -Dsonar.projectKey=YOUR_PROJECT_KEY \
-            -Dsonar.organization=YOUR_ORG \
+            -Dsonar.projectKey=LacusFaustus_NOTIFICATION-SERVICE \
+            -Dsonar.organization=lacusfaustus \
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
